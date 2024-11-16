@@ -11,7 +11,13 @@ BAUD_RATE = 115200
 EEG_THRESHOLD = 500  
 EEG_SCALING_FACTOR = 0.02  
 
-# # Connect to Arduino
+# Low difficulty - 1
+ampl_min = 5
+ampl_max = 10
+durn_min = 100
+durn_max = 110
+
+# Connect to Arduino
 arduino = serial.Serial(COM_PORT, BAUD_RATE, timeout=1)
 time.sleep(2)  # Allow time for Arduino connection to establish
 print("Connected to Arduino\n")
@@ -24,7 +30,6 @@ def send_command(command):
 
 def process_eeg_data(eeg_data):
     """Process EEG data to extract meaningful features."""
-    # Example: Use mean and max of absolute EEG values
     eeg_values = np.array(eeg_data)
     abs_mean = np.mean(np.abs(eeg_values))
     max_peak = np.max(np.abs(eeg_values))
@@ -32,11 +37,28 @@ def process_eeg_data(eeg_data):
 
 def calculate_stimulation_params(abs_mean, max_peak):
     """Determine AMPL, DURN, and FREQ based on processed EEG data."""
-    ampl = int(min(max(10, abs_mean * EEG_SCALING_FACTOR), 30))  # Scale to 5-20 mA
-    durn = int(min(max(150, max_peak * EEG_SCALING_FACTOR), 200))  # Scale to 100-200 µs
+    ampl = int(min(max(ampl_min, abs_mean * EEG_SCALING_FACTOR), ampl_max))  # Scale to 5-30 mA
+    durn = int(min(max(durn_min, max_peak * EEG_SCALING_FACTOR), durn_max))  # Scale to 100-200 µs
     freq = 20 if abs_mean > EEG_THRESHOLD else 10  # Adjust frequency based on mean
     return ampl, durn, freq
 
+def control_led(ampl, durn, ):
+    """Determine which LED to light up based on AMPL and DURN."""
+    led_value = ampl + durn  # Calculate LED value
+
+    # Low difficulty 
+    if 115 <= led_value <= 120:
+        print(f"LED Control: Red (Value={led_value})")
+        send_command("LED RED")
+    elif 110 <= led_value < 115:
+        print(f"LED Control: Yellow (Value={led_value})")
+        send_command("LED YELLOW")
+    elif 105 <= led_value < 110:
+        print(f"LED Control: Green (Value={led_value})")
+        send_command("LED GREEN")
+    else:
+        print(f"LED Control: Turn off (Value={led_value})")
+        send_command("LED OFF")
 
 # Muse 2 EEG Streaming Configuration
 params = BrainFlowInputParams()
@@ -46,7 +68,6 @@ fs = 256
 
 # Bandpass Filter Function
 def bandpass_filter(data, lowcut, highcut, fs, order=4):
-    """Apply a Butterworth bandpass filter."""
     nyquist = 0.5 * fs  
     low = lowcut / nyquist
     high = highcut / nyquist
@@ -68,20 +89,18 @@ try:
     wave_colors = ['blue', 'purple', 'green', 'orange', 'red']
     lines = [axs[i].plot([], [], lw=2, color=wave_colors[i], label=wave_names[i])[0] for i in range(5)]
 
-    # Configure each subplot
     for i, ax in enumerate(axs):
-        ax.set_xlim(0, 100)  # Fixed x-axis range
-        ax.set_ylim(-500, 500)  # Adjust y-axis range for EEG signal
+        ax.set_xlim(0, 100)
+        ax.set_ylim(-500, 500)
         ax.legend(loc='upper right')
     plt.tight_layout()
 
     # Continuous streaming and plotting
     while True:
-        data = board.get_current_board_data(100)  # Get last 100 samples
-        # time.sleep(0.1)
-        eeg_channels = board.get_eeg_channels(board_id)  # EEG channels
+        data = board.get_current_board_data(100)
+        eeg_channels = board.get_eeg_channels(board_id)
         if len(eeg_channels) > 0 and len(data) > 0:
-            eeg_data = data[eeg_channels[0]]  # Use the first EEG channel
+            eeg_data = data[eeg_channels[0]]
 
             # Filter data into bands
             delta = bandpass_filter(eeg_data, 0.5, 4, fs)
@@ -98,37 +117,33 @@ try:
             fig.canvas.draw_idle()
             fig.canvas.flush_events()
 
-            # # Process EEG data
-            print(f"EEG Data: {eeg_data}")
-            print(f"Length of EEG Data: {len(eeg_data)}")
-
+            # Process EEG data
             abs_mean, max_peak = process_eeg_data(eeg_data)
-            print(f"Processed EEG -> Mean: {abs_mean:.2f}, Peak: {max_peak:.2f}")
-
-            # Calculate stimulation parameters
             ampl, durn, freq = calculate_stimulation_params(abs_mean, max_peak)
+
+            # Log stimulation parameters
             print(f"Stimulation Params -> AMPL: {ampl}, DURN: {durn}, FREQ: {freq}")
 
-            # Send stimulation commands to Arduino
-            # Set parameters for Channel 1
+            # Control LEDs based on AMPL + DURN
+            control_led(ampl, durn)
+
+            # Send stimulation commands
             send_command(f"FREQ 1 {freq}")
             send_command(f"AMPL 1 {ampl}")
             send_command(f"DURN 1 {durn}")
 
-            # Set parameters for Channel 2
             send_command(f"FREQ 2 {freq}")
             send_command(f"AMPL 2 {ampl}")
             send_command(f"DURN 2 {durn}")
 
-            # Trigger stimulation for both channels
             send_command("STIM 1 10 0")
             send_command("STIM 2 10 0")
 
-            time.sleep(6)  # Wait for stimulation to complete before the next cycle
+            time.sleep(6)
 
 except KeyboardInterrupt:
     print("\nStopping EEG Stream and Arduino Communication...")
-    send_command("EOFF")  # Emergency stop stimulation
+    send_command("EOFF")
     board.stop_stream()
     board.release_session()
     arduino.close()
