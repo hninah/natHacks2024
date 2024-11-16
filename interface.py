@@ -6,28 +6,31 @@ amplMax = 0
 durnMin = 0
 durnMax = 0
 
+#Colour parameters 
+large_font = ("Arial", 24)  
+button_font = ("Arial", 20)
+bg = "#fffff0"
+text = "black"
+
 # Create the main window
 root = tk.Tk()
 root.title("Muse Helper")
-root.config(bg="black")
+root.config(bg=bg)
 
-# Font size for larger text
-large_font = ("Arial", 24)  # Larger font for labels and buttons
-button_font = ("Arial", 20) # Font size for buttons
 
 # Add labels for user messages
 message1 = tk.Label(
     text="Hello, User",
-    foreground="white", 
-    background="black",
+    foreground=text, 
+    background=bg,
     font=large_font
 )
 message1.pack(pady=10)
 
 message2 = tk.Label(
     text="Choose intensity: 1 (low) - 5 (high)",
-    foreground="white", 
-    background="black",
+    foreground=text, 
+    background=bg,
     font=large_font
 )
 message2.pack(pady=10)
@@ -58,10 +61,10 @@ def on_button_click(button_number):
     print(f"durnMin: {durnMin}, durnMax: {durnMax}")
 
 # Create buttons numbered 1 to 5 and place them horizontally
-button_frame = tk.Frame(root, background="black")  # Create a frame to hold the buttons
-
+button_frame = tk.Frame(root, background=bg)  # Create a frame to hold the buttons
+button_colours = ["#6ad2e6","#ff6652", "#ffbbdc", "#51bd85", "#ffe534"]
 for i in range(1, 6):
-    button = tk.Button(button_frame, text=str(i), command=lambda i=i: on_button_click(i),font=button_font)
+    button = tk.Button(button_frame, text=str(i), command=lambda i=i: on_button_click(i),font=button_font, bg=button_colours[i-1])
     button.pack(side="left", padx=5)  
 
 button_frame.pack(pady=20)  
