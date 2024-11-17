@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from brainflow.board_shim import BoardShim, BrainFlowInputParams
 from scipy.signal import butter, lfilter
+import settings 
 
 # Configuration
 COM_PORT = "COM13"  

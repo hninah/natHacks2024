@@ -9,8 +9,9 @@ text = "black"
 
 # Create the main window
 root = tk.Tk()
-root.title("Muse Helper")
+root.title("B.A.R.B.I.E")
 root.config(bg=bg)
+root.geometry("1000x700")
 
 
 # Add labels for user messages
@@ -20,7 +21,7 @@ message1 = tk.Label(
     background=bg,
     font=large_font
 )
-message1.pack(pady=10)
+message1.pack(side="top",pady=70, anchor="center")
 
 message2 = tk.Label(
     text="Choose intensity: 1 (low) - 5 (high)",
@@ -28,7 +29,7 @@ message2 = tk.Label(
     background=bg,
     font=large_font
 )
-message2.pack(pady=10)
+message2.pack(pady=10, anchor="center")
 
 # Function to handle button click events and update parameters
 def on_button_click(button_number):
@@ -57,7 +58,7 @@ for i in range(1, 6):
     button = tk.Button(button_frame, text=str(i), command=lambda i=i: on_button_click(i), font=button_font, bg=button_colours[i-1])
     button.pack(side="left", padx=5, expand=True)  
 
-button_frame.pack(pady=20)  
+button_frame.pack(pady=20, anchor="center")  
 
 # Run the application
 root.mainloop()  
