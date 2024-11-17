@@ -60,6 +60,8 @@ def on_button_click(button_number):
     print(f"amplMin: {amplMin}, amplMax: {amplMax}")
     print(f"durnMin: {durnMin}, durnMax: {durnMax}")
 
+    return amplMin, amplMax, durnMin, durnMax
+
 # Create buttons numbered 1 to 5 and place them horizontally
 button_frame = tk.Frame(root, background=bg)  # Create a frame to hold the buttons
 button_colours = ["#6ad2e6","#ff6652", "#ffbbdc", "#51bd85", "#ffe534"]
