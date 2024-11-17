@@ -4,12 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from brainflow.board_shim import BoardShim, BrainFlowInputParams
 from scipy.signal import butter, lfilter
-import settings 
+# import settings 
 
 # Configuration
 COM_PORT = "COM13"  
 BAUD_RATE = 115200  
-EEG_THRESHOLD = 500  
+EEG_THRESHOLD = 200  
 EEG_SCALING_FACTOR = 0.02  
 
 # Low difficulty - 1
@@ -38,9 +38,32 @@ def process_eeg_data(eeg_data):
 
 def calculate_stimulation_params(abs_mean, max_peak):
     """Determine AMPL, DURN, and FREQ based on processed EEG data."""
-    ampl = int(min(max(ampl_min, abs_mean * EEG_SCALING_FACTOR), ampl_max))  # Scale to 5-30 mA
-    durn = int(min(max(durn_min, max_peak * EEG_SCALING_FACTOR), durn_max))  # Scale to 100-200 µs
-    freq = 20 if abs_mean > EEG_THRESHOLD else 10  # Adjust frequency based on mean
+    print(f"absolute mean: {abs_mean}")
+    if abs_mean < 120:
+        print("ampl = 5")
+        ampl = 10
+        durn = 100
+        send_command("LEDGREEN")
+    if abs_mean > 120 and abs_mean < 200:
+        print("ampl = 10")
+        ampl = 15
+        durn = 120
+        send_command("LEDYELLOW")
+    if abs_mean > 200:
+        print("ampl = 20")
+        ampl = 20
+        durn = 200
+        send_command("LEDRED")
+    # ampl = int(min(max(ampl_min, abs_mean * EEG_SCALING_FACTOR), ampl_max))  # Scale to 5-30 mA
+    # print(ampl)
+    # durn = int(min(max(durn_min, max_peak * EEG_SCALING_FACTOR), durn_max))  # Scale to 100-200 µs
+    # print(durn)
+    if abs_mean > EEG_THRESHOLD:
+        print("freq = 20")
+        freq = 20
+    else:
+        print("freq = 10")
+        freq = 10  # Adjust frequency based on mean
     return ampl, durn, freq
 
 def control_led(ampl, durn, ):
@@ -103,6 +126,8 @@ try:
         if len(eeg_channels) > 0 and len(data) > 0:
             eeg_data = data[eeg_channels[0]]
 
+            # four waves = [delta, theta, alpha, beta, gamma]
+
             # Filter data into bands
             delta = bandpass_filter(eeg_data, 0.5, 4, fs)
             theta = bandpass_filter(eeg_data, 4, 8, fs)
@@ -126,7 +151,6 @@ try:
             print(f"Stimulation Params -> AMPL: {ampl}, DURN: {durn}, FREQ: {freq}")
 
             # Control LEDs based on AMPL + DURN
-            control_led(ampl, durn)
 
             # Send stimulation commands
             send_command(f"FREQ 1 {freq}")
@@ -140,11 +164,15 @@ try:
             send_command("STIM 1 10 0")
             send_command("STIM 2 10 0")
 
+            control_led(ampl, durn)
+
+
             time.sleep(6)
 
 except KeyboardInterrupt:
     print("\nStopping EEG Stream and Arduino Communication...")
-    send_command("EOFF")
+    # send_command("EOFF")
+    send_command(f"LEDOFF")
     board.stop_stream()
     board.release_session()
     arduino.close()
